@@ -1,0 +1,50 @@
+name: Build NixOS ISO
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v9
+
+      - name: Set up Nix cache
+        uses: DeterminateSystems/magic-nix-cache-action@v2
+
+      - name: Build NixOS ISO
+        run: |
+          # Build the ISO
+          nix build .#nixosConfigurations.corednsMachine.config.formats.install-iso
+          
+          # Get the path to the result
+          ISO_PATH=$(readlink -f result)
+          
+          # Create a directory to store the ISO for artifact upload
+          mkdir -p iso-output
+          
+          # Copy the ISO to the output directory with a more descriptive name
+          cp -L "$ISO_PATH" iso-output/coredns-nixos.iso
+          
+          # Output information about the ISO
+          echo "ISO file built at: $ISO_PATH"
+          echo "ISO file size: $(du -h "$ISO_PATH" | cut -f1)"
+
+      - name: Upload ISO as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coredns-nixos-iso
+          path: iso-output/coredns-nixos.iso
+          # Optional: How long to retain the artifact (default is 90 days)
+          retention-days: 7
+          # Optional: Compression level (0-9)
+          compression-level: 9
