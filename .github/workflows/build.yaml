@@ -25,6 +25,8 @@ jobs:
           # Build the ISO
           nix build .#nixosConfigurations.corednsMachine.config.formats.install-iso
           
+          ls result
+
           # Get the path to the result
           ISO_PATH=$(readlink -f result)
           
