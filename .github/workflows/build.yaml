@@ -22,20 +22,21 @@ jobs:
 
       - name: Build NixOS ISO
         run: |
+          set -x
           # Build the ISO
           nix build .#nixosConfigurations.corednsMachine.config.formats.install-iso
-          
+
           ls result
 
           # Get the path to the result
-          ISO_PATH=$(readlink -f result)
-          
+          ISO_PATH=$(find result -type f -name '*.iso' | head -n 1)
+
           # Create a directory to store the ISO for artifact upload
           mkdir -p iso-output
-          
+
           # Copy the ISO to the output directory with a more descriptive name
           cp -L "$ISO_PATH" iso-output/coredns-nixos.iso
-          
+
           # Output information about the ISO
           echo "ISO file built at: $ISO_PATH"
           echo "ISO file size: $(du -h "$ISO_PATH" | cut -f1)"
