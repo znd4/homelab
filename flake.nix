@@ -95,14 +95,19 @@
         # restores the previous generation (magic rollback).
         # Deploy the DNS hosts one at a time. See docs/decisions/0006-dns.md.
         deploy.nodes = nixpkgs.lib.genAttrs hostNames (name: {
-          hostname = "${name}.local";
+          # The LAN address, not mDNS: it works when mDNS does not.
+          hostname = self.nixosConfigurations.${name}.config.homelab.lanAddress;
           sshUser = "znd4";
           user = "root";
           remoteBuild = true;
           profiles.system.path = deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.${name};
         });
 
-        checks.x86_64-linux = deploy-rs.lib.x86_64-linux.deployChecks self.deploy;
+        checks.x86_64-linux = deploy-rs.lib.x86_64-linux.deployChecks self.deploy // {
+          dns-vm = nixpkgs.legacyPackages.x86_64-linux.testers.runNixOSTest (
+            import ./nix/tests/dns.nix { inherit self; }
+          );
+        };
 
         # Built-in image builder (NixOS 25.05+). It replaces nixos-generators.
         # Any host can also become an image, for example:

@@ -40,3 +40,19 @@ jobs:
           path: out/homelab-installer.iso
           retention-days: 7
           compression-level: 0
+
+  # VM test: DNS records, VIP failover, Caddy -> CUPS. Needs KVM, which
+  # GitHub's Linux runners provide.
+  dns-vm-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
+      - uses: DeterminateSystems/nix-installer-action@main
+        with:
+          determinate: true
+      - uses: DeterminateSystems/flakehub-cache-action@main
+      - run: nix build --print-build-logs .#checks.x86_64-linux.dns-vm

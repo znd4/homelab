@@ -62,10 +62,12 @@ let
     ${lib.optionalString (cfg.wildcardTarget != null) "* IN A ${cfg.wildcardTarget}"}
   '';
 
-  # Exit 0 only if the local server answers with the version record.
+  # Exit 0 only if the local server answers with the version record of this
+  # build. Match the exact value: on a failure, dig prints its error text to
+  # stdout, so "any output" is not a valid test.
   healthCheck = pkgs.writeShellScript "homelab-dns-check" ''
     ${pkgs.dnsutils}/bin/dig +short +time=1 +tries=1 @127.0.0.1 version.${zone} TXT \
-      | ${pkgs.gnugrep}/bin/grep -q .
+      | ${pkgs.gnugrep}/bin/grep -qxF '"${flakeRev}"'
   '';
 in
 {
@@ -159,7 +161,7 @@ in
     # A switch fails if CoreDNS starts but does not answer. The deploy then
     # stops before the next host (see docs/decisions/0006-dns.md).
     systemd.services.coredns.serviceConfig.ExecStartPost = pkgs.writeShellScript "coredns-ready" ''
-      for _ in $(seq 20); do
+      for _ in $(seq 60); do
         ${healthCheck} && exit 0
         sleep 0.5
       done

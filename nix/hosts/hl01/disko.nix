@@ -6,7 +6,7 @@
 {
   disko.devices.disk.main = {
     type = "disk";
-    # TODO: replace with the stable /dev/disk/by-id/... path from the installer
+    # TODO(bootstrap): replace with the stable /dev/disk/by-id/... path from the installer
     # (`ls -l /dev/disk/by-id`).
     device = "/dev/nvme0n1";
     content = {
