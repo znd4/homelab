@@ -1,40 +1,46 @@
 # homelab
 
-Config for my homelab: NixOS on bare metal today, Kubernetes on Talos later,
-and network config as code eventually.
+Config for my homelab. NixOS runs on bare metal now. Kubernetes on Talos comes
+later, and network config as code after that.
 
 ## Layout
 
 ```
-flake.nix                 hosts, installer ISO, dev shell
+flake.nix                 hosts, deploy-rs nodes, installer ISO, dev shell
+.sops.yaml                sops recipients (admin key + host keys)
 nix/
-  keys.nix                admin SSH public keys (used everywhere)
+  keys.nix                admin SSH public keys
   installer.nix           bootstrap ISO for nixos-anywhere installs
-  modules/                custom NixOS modules, all under `homelab.*`
-    base.nix              users, sshd, firewall, nix settings, mDNS
-    remote-unlock.nix     SSH in initrd for LUKS unlock (on by default)
-    reverse-proxy.nix     Caddy vhosts at <service>.<host>.internal
+  modules/                custom NixOS modules, all below `homelab.*`
+    base.nix              users, sshd, firewall, nix settings, mDNS, sops
+    remote-unlock.nix     SSH in the initrd for LUKS unlock (on by default)
+    reverse-proxy.nix     Caddy, *.home.znd4.dev, wildcard cert via DNS-01
     services/cups.nix     LAN print server
-  hosts/<host>/           per-machine config: disko layout, facter report, services
-infra/                    OpenTofu + Terragrunt (not started; see infra/README.md)
+    services/dns.nix      CoreDNS for home.znd4.dev, keepalived VIP
+  hosts/<host>/           disko layout, facter report, secrets, services
+infra/                    OpenTofu + Terragrunt (not started, see infra/README.md)
 docs/
-  architecture.md         where this is going
-  bootstrap.md            runbook: install a new NixOS host
-  decisions/              short decision records, with the open questions
+  architecture.md         the plan and the conventions
+  bootstrap.md            procedure to install a new NixOS host
+  decisions/              short decision records
 ```
 
 ## Common commands
 
 ```sh
-nix develop                                    # nixos-anywhere, nixos-rebuild, tofu, terragrunt
-nix build .#installer-iso                      # bootstrap USB image (needs a Linux builder, or download it from CI)
-nixos-rebuild switch --flake .#hl01 \
-  --target-host znd4@hl01.local --build-host znd4@hl01.local --sudo
-nixos-rebuild build-image --flake .#hl01 --image-variant qemu-efi   # host as a VM image
+nix develop                     # deploy, nixos-anywhere, sops, ssh-to-age, dig, tofu
+deploy .#hl01                   # build on hl01 and activate, with rollback
+sops nix/hosts/hl01/secrets.yaml
+nix build .#installer-iso       # bootstrap USB image (needs a Linux builder, or get it from CI)
+nixos-rebuild build-image --flake .#hl01 --image-variant qemu-efi   # hl01 as a VM image
+nix build .#checks.x86_64-linux.dns-vm   # VM test: DNS, VIP failover, Caddy -> CUPS (needs KVM)
 ```
 
 ## Hosts
 
 | Host | Role | Services |
 | --- | --- | --- |
-| hl01 | First NixOS box; runs services until the cluster exists | CUPS (`printer.hl01.internal`) |
+| hl01 | First NixOS host. It runs services until the cluster exists. | CUPS (`printer.home.znd4.dev`), DNS for `home.znd4.dev` |
+
+The build fails until you set the bootstrap values. `docs/bootstrap.md`
+lists them.

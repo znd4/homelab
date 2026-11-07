@@ -18,9 +18,9 @@
   passphrase prompt and gets no shell.
 - **NIC drivers** come from the host's nixos-facter report (upstream
   `hardware.facter`). It adds network modules to the initrd whenever
-  `boot.initrd.network.enable` is set.
+  `boot.initrd.network.enable` is true.
 - **Host key:** a dedicated key at `/etc/secrets/initrd/ssh_host_ed25519_key`.
-  It is generated during bootstrap and shipped with `nixos-anywhere --extra-files`.
+  The bootstrap procedure makes it, and `nixos-anywhere --extra-files` copies it.
   - It ends up in the initrd on the **unencrypted** ESP, so anyone with
     physical access can read it and spoof the prompt. That's why it is never
     the real host key and gets its own known_hosts alias.

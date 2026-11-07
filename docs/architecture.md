@@ -2,51 +2,64 @@
 
 ## End state
 
-- **Kubernetes on Talos** runs most workloads. Talos is immutable and
-  API-driven, with no SSH and no package manager, so the nodes are cattle.
-- **NixOS on bare metal** runs whatever is a poor fit for Kubernetes:
-  - things the cluster depends on (DNS, possibly storage at first, the
-    Tofu/Talos tooling host);
-  - hardware-bound services (USB printers, a possible Zigbee or Z-Wave
-    coordinator);
-  - anything simpler as a systemd unit than as a Helm chart.
-- **The network (UniFi) is managed as code** with OpenTofu + Terragrunt via
-  `ubiquiti-community/unifi`: networks, WLANs, fixed IPs, DNS records, firewall
-  zones.
-- **Storage:** eventually Ceph (Rook). Its RGW also becomes the Tofu state
-  backend (see [decision 0005](decisions/0005-tofu-state-backend.md)).
+- **Kubernetes on Talos** runs most workloads. Talos is immutable and has only
+  an API. It has no SSH and no package manager, so a node is easy to replace.
+- **NixOS on bare metal** runs the things that do not fit Kubernetes well:
+  - services that the cluster depends on, such as DNS and the admin host.
+  - services that need local hardware, such as USB printers or a Zigbee
+    coordinator.
+  - services that are simpler as a systemd unit than as a Helm chart.
+- **OpenTofu and Terragrunt manage the UniFi network** with the
+  `ubiquiti-community/unifi` provider. This covers networks, WLANs, fixed IPs,
+  the DNS forward and firewall zones.
+- **Ceph (Rook) supplies storage** later. Its RGW also becomes the Tofu state
+  backend (decision 0005).
 
 ## Phases
 
-1. **First NixOS host (`hl01`)** ← now
-   - [x] Custom modules: `base`, `remote-unlock`, `reverse-proxy`, `services/cups`
-   - [x] Installer ISO, disko layout, CI builds
-   - [ ] Add an SSH key to `nix/keys.nix`, then install on real hardware ([bootstrap.md](bootstrap.md))
-   - [ ] UniFi (clickops): DHCP reservation for hl01, DNS record `printer.hl01.internal`
+1. **First NixOS host (`hl01`).** This is the current phase.
+   - [x] Modules: `base`, `remote-unlock`, `reverse-proxy`, `services/cups`, `services/dns`
+   - [x] Installer ISO, disko layout, sops-nix, deploy-rs, CI builds
+   - [ ] Do the bootstrap procedure on real hardware ([bootstrap.md](bootstrap.md))
+   - [ ] UniFi (by hand): DHCP reservation, Forward Domain for `home.znd4.dev`
    - [ ] Declare the printer in `hardware.printers.ensurePrinters`
-2. **Network as code**
-   - Tofu state backend, then import the existing UniFi config
-   - Manage DNS records with `for_each` over each host's services
-3. **Talos cluster**
-   - Talos machine configs generated from this repo (`talhelper` or the Talos Tofu provider)
-   - Flux or Argo CD for workloads
-4. **Migrate workloads** from NixOS hosts to the cluster, service by service.
-   NixOS modules stay as the fallback.
+2. **A second DNS host.** It removes the single point of failure for
+   `home.znd4.dev` (decision 0006).
+3. **Network as code.**
+   - Set up the Tofu state backend, then import the current UniFi config.
+4. **Talos cluster.**
+   - Make the Talos machine configs from this repository (`talhelper` or the
+     Talos Tofu provider).
+   - Use Flux or Argo CD for workloads.
+5. **Move workloads** from NixOS hosts to the cluster, one service at a time.
+   The NixOS modules stay as the fallback.
 
 ## Conventions
 
-- Every custom option lives under `homelab.*`. Service modules are
-  `homelab.services.<name>`, off by default, and a host enables them.
-- A service with a web UI registers `homelab.reverseProxy.vhosts.<sub>` rather
-  than configuring Caddy itself. It is served at `<sub>.<host>.internal`.
-- Things a host must not forget, such as an SSH key or initrd NIC drivers, are
-  enforced with `assertions`. Never leave them as silent defaults.
-- Secrets: none yet. The first service that needs one brings in sops-nix,
-  keyed to each host's SSH host key. See open questions.
+- Every custom option is below `homelab.*`. Service modules are
+  `homelab.services.<name>`. They are off by default, and a host enables them.
+- A service with a web UI adds `homelab.reverseProxy.vhosts.<sub>`. It does
+  not configure Caddy directly. Caddy serves it at `<sub>.home.znd4.dev`.
+- DNS records come from the flake (decision 0006). Do not add records by hand
+  in UniFi.
+- A host must not forget some values, such as an SSH key or a NIC driver.
+  Modules check these values with `assertions`.
+- Secrets use sops-nix (decision 0007).
+- Deploys use deploy-rs (`deploy .#<host>`).
+
+## Decisions
+
+| # | Title |
+| --- | --- |
+| [0001](decisions/0001-nixos-now-talos-later.md) | NixOS on bare metal now, Talos later |
+| [0002](decisions/0002-remote-disk-unlock.md) | Full-disk encryption with SSH unlock |
+| [0003](decisions/0003-names-and-tls.md) | Service names and TLS |
+| [0004](decisions/0004-cups-exposure.md) | Exposure of the print server |
+| [0005](decisions/0005-tofu-state-backend.md) | OpenTofu state backend (proposed) |
+| [0006](decisions/0006-dns.md) | DNS for the homelab zone |
+| [0007](decisions/0007-secrets.md) | Secrets with sops-nix |
 
 ## Open questions
 
-- Hostname scheme (`hl01` is a placeholder).
-- Secrets tool: sops-nix or agenix. Leaning sops-nix, because the same
-  age/SOPS files can feed Tofu (`carlpett/sops`) and Kubernetes (SOPS in Flux).
-- Real domain vs `.internal` ([decision 0003](decisions/0003-names-and-tls.md)).
+- Hostname scheme. `hl01` is a placeholder.
+- The Tofu state backend (decision 0005).

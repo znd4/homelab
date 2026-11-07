@@ -1,4 +1,4 @@
-# 0004: How the print server is exposed
+# 0004: Exposure of the print server
 
 **Status:** accepted · 2026-11
 
@@ -7,14 +7,14 @@
 | Path | Who | How |
 | --- | --- | --- |
 | Printing | Any LAN device | IPP straight to cupsd `:631`. Avahi advertises it as IPP Everywhere/AirPrint |
-| Admin web UI | Me | `https://printer.hl01.internal` → Caddy → `localhost:631` |
+| Admin web UI | Me | `https://printer.home.znd4.dev` → Caddy → `localhost:631` |
 
 ## Why printing doesn't go through Caddy
 
 - Clients find printers over mDNS, which advertises `hl01.local:631`, not our
   Caddy name. A proxy would also break IPP for many clients.
-- Caddy adds nothing on that path. LAN-only access is enforced by cupsd itself
-  (`allowFrom` = LAN CIDRs) and the firewall boundary (631 is never forwarded).
+- Caddy adds nothing on that path. cupsd itself enforces LAN-only access
+  (`allowFrom` = LAN CIDRs). The router never forwards port 631.
 
 ## Hardening
 
@@ -29,7 +29,7 @@
   (root/wheel/lpadmin) with a password.
   - `users.mutableUsers = false` and no admin password means this doesn't work
     out of the box.
-  - That's intentional: **printer queues are declared in Nix**
+  - That's intentional: **Nix declares the printer queues**
     (`hardware.printers.ensurePrinters`), and the web UI is for status and job
     management.
 - `cups-browsed` is off. This host shares printers and doesn't discover other

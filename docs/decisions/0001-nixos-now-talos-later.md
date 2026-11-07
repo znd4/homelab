@@ -16,15 +16,15 @@
 - **NixOS modules are a good holding pattern.** Each service is a few dozen
   declarative lines, and the cutover to Kubernetes is per service.
 - **Talos for the nodes** because the OS is immutable and API-only, so nothing
-  drifts and there is no SSH. It is managed the same way from here (machine
+  drifts and there is no SSH. This repository manages it the same way (machine
   configs as code).
 
 ## Notes
 
 - Some things may never move to Kubernetes: hardware-bound services (USB), and
   things the cluster depends on (DNS, a bootstrap/admin host).
-- Images are built with the image builder built into nixpkgs (25.05+), which
-  replaced the archived nixos-generators:
+- The image builder in nixpkgs (25.05+) makes the images. It replaced the
+  archived nixos-generators:
   - `nixos-rebuild build-image --image-variant <v>`
   - `config.system.build.images.<v>`
 
