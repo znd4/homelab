@@ -1,4 +1,4 @@
-# Everything a homelab NixOS host imports. Service modules are inert until a
+# Everything a homelab NixOS host imports. Service modules do nothing until a
 # host sets `homelab.services.<name>.enable = true`.
 {
   imports = [
@@ -6,5 +6,6 @@
     ./remote-unlock.nix
     ./reverse-proxy.nix
     ./services/cups.nix
+    ./services/dns.nix
   ];
 }

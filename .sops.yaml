@@ -1,0 +1,15 @@
+# sops recipients. Each secrets file is encrypted to:
+#   - the admin age key. It lives in 1Password and decrypts on the workstation.
+#   - the host age key, which comes from the host SSH key (ssh-to-age).
+# docs/bootstrap.md shows how to create both keys.
+keys:
+  # TODO(bootstrap): `age-keygen -y` output for the admin key.
+  - &admin age1replace-with-admin-public-key
+  # TODO(bootstrap): `ssh-to-age < ssh_host_ed25519_key.pub` for hl01.
+  - &hl01 age1replace-with-hl01-public-key
+creation_rules:
+  - path_regex: nix/hosts/hl01/secrets\.yaml$
+    key_groups:
+      - age:
+          - *admin
+          - *hl01

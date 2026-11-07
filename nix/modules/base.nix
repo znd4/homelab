@@ -24,11 +24,19 @@ in
     };
     domain = lib.mkOption {
       type = lib.types.str;
-      default = "${config.networking.hostName}.internal";
-      defaultText = lib.literalExpression ''"''${config.networking.hostName}.internal"'';
+      default = "home.znd4.dev";
       description = ''
-        Per-machine DNS zone. Services are exposed as `<name>.''${domain}`; the
-        router resolves `*.''${domain}` to this machine.
+        DNS zone for homelab services. Each service gets a name
+        `<service>.''${domain}`. The name does not include the host, so a
+        service can move to a different host or to Kubernetes without a new name.
+      '';
+    };
+    lanAddress = lib.mkOption {
+      type = lib.types.str;
+      example = "192.168.1.10";
+      description = ''
+        The LAN IPv4 address of this host. Set it as a DHCP reservation in
+        UniFi. The homelab DNS zone points this host's names at this address.
       '';
     };
   };
@@ -67,6 +75,10 @@ in
         PermitRootLogin = "no";
       };
     };
+
+    # sops-nix decrypts secrets with the host SSH key (converted to age).
+    # The bootstrap procedure creates this key before install. See docs/bootstrap.md.
+    sops.age.sshKeyPaths = [ "/etc/ssh/ssh_host_ed25519_key" ];
 
     networking.firewall.enable = true;
     networking.useNetworkd = true;

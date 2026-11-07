@@ -5,7 +5,7 @@
 #     queues (IPP Everywhere / AirPrint), so macOS, iOS, Android and Linux find
 #     them with no setup. This path does NOT go through Caddy, because mDNS
 #     advertises <host>.local:631.
-#   - Admin web UI: https://printer.<host>.internal via Caddy (LAN only). CUPS
+#   - Admin web UI: https://printer.home.znd4.dev via Caddy (LAN only). CUPS
 #     rejects unknown Host headers (DNS-rebinding protection), so Caddy rewrites
 #     Host to localhost. Anything that changes config still needs a login in
 #     CUPS' SystemGroup. Prefer declaring printers in Nix (`hardware.printers`)

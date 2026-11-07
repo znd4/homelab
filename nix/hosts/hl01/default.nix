@@ -1,5 +1,5 @@
-# hl01: first bare-metal NixOS box. It runs services until the Talos cluster
-# exists, then hands them over.
+# hl01: the first bare-metal NixOS host. It runs services until the Talos
+# cluster exists. Then the services move to the cluster.
 { lib, pkgs, ... }:
 {
   imports = [ ./disko.nix ];
@@ -8,12 +8,14 @@
   system.stateVersion = "26.05";
   nixpkgs.hostPlatform = "x86_64-linux";
 
-  # Hardware detection. Generated during install with
-  # `nixos-anywhere --generate-hardware-config nixos-facter ./nix/hosts/hl01/facter.json`.
-  # Until that file exists, fall back to the explicit initrd NIC list below.
+  # TODO(bootstrap): set the DHCP reservation in UniFi, then put it here.
+  homelab.lanAddress = "192.168.1.10";
+
+  # Hardware detection. The bootstrap procedure creates facter.json
+  # (docs/bootstrap.md). Until it exists, the explicit initrd NIC list below applies.
   hardware.facter.reportPath = lib.mkIf (builtins.pathExists ./facter.json) ./facter.json;
   homelab.remoteUnlock.kernelModules = lib.mkIf (!builtins.pathExists ./facter.json) [
-    # Common onboard and PCIe NICs. Harmless if absent: these are only loaded when matching hardware shows up.
+    # Common onboard and PCIe NICs. The kernel loads a module only if the hardware is present.
     "r8169"
     "igc"
     "igb"
@@ -23,12 +25,27 @@
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
+  # Secrets for this host. The bootstrap procedure creates this file.
+  sops.defaultSopsFile = ./secrets.yaml;
+
+  # TODO(bootstrap): set to the target of the _acme-challenge CNAME.
+  homelab.reverseProxy.acme.challengeDomain = "_acme-challenge.znd4-homelab.dedyn.io";
+
+  homelab.services.dns = {
+    enable = true;
+    # TODO(bootstrap): pick a LAN address outside the DHCP pool.
+    vip = "192.168.1.53";
+    # TODO(bootstrap): the LAN interface name from `ip -br link`.
+    interface = "enp1s0";
+    priority = 150;
+  };
+
   homelab.services.cups = {
     enable = true;
     drivers = [ pkgs.brlaser ];
   };
 
-  # Declare queues here instead of in the web UI, e.g.:
+  # Declare printer queues here, not in the web UI. Example:
   # hardware.printers.ensurePrinters = [{
   #   name = "brother";
   #   deviceUri = "usb://Brother/...";   # `lpinfo -v` on the host
