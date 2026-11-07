@@ -31,6 +31,8 @@ let
         lanAddress = config.networking.primaryIPAddress;
         remoteUnlock.enable = false;
         reverseProxy.tls = "internal";
+        # The test network, not the subnets in nix/inventory.nix.
+        reverseProxy.lanCidrs = [ "192.168.1.0/24" ];
         services.dns = {
           enable = true;
           inherit vip priority;

@@ -24,6 +24,7 @@
 }:
 let
   cfg = config.homelab.services.dns;
+  inventory = import ../../inventory.nix;
   zone = config.homelab.domain;
 
   # The `homelab` config of every host in the flake, this host included.
@@ -75,11 +76,13 @@ in
     enable = lib.mkEnableOption "authoritative DNS for the homelab zone";
     vip = lib.mkOption {
       type = lib.types.str;
-      example = "192.168.1.53";
+      default = inventory.vips.dns;
+      defaultText = lib.literalExpression "(import nix/inventory.nix).vips.dns";
+      example = "10.0.20.53";
       description = ''
         Floating IPv4 address for the DNS service. The UniFi Forward Domain
-        rule points at it. It must be in the LAN subnet and outside the DHCP pool.
-        Set the same value on every DNS host.
+        rule points at it. It must be in the servers subnet and outside the DHCP
+        pool. All DNS hosts use the same value.
       '';
     };
     vipPrefixLength = lib.mkOption {

@@ -13,6 +13,11 @@
 #
 # Exposure: cupsd listens on all interfaces but only answers `lanCidrs`. Never
 # port-forward 631.
+#
+# VLANs: the CUPS host is in the servers network, and clients are in other
+# networks. mDNS does not cross VLANs by itself. Turn on the UniFi mDNS proxy
+# (multicast DNS) for the servers network and the client networks, or clients
+# do not find the printer. See docs/decisions/0008-network-as-code.md.
 {
   config,
   lib,
@@ -21,6 +26,7 @@
 }:
 let
   cfg = config.homelab.services.cups;
+  inventory = import ../../inventory.nix;
 in
 {
   options.homelab.services.cups = {
@@ -33,9 +39,14 @@ in
     };
     lanCidrs = lib.mkOption {
       type = lib.types.listOf lib.types.str;
-      default = config.homelab.reverseProxy.lanCidrs;
-      defaultText = lib.literalExpression "config.homelab.reverseProxy.lanCidrs";
-      description = "Networks allowed to print and to view the web UI.";
+      default = lib.mapAttrsToList (_: n: n.subnet) (
+        lib.filterAttrs (_: n: n.canPrint) inventory.networks
+      );
+      defaultText = lib.literalExpression "subnets of the networks with canPrint = true in nix/inventory.nix";
+      description = ''
+        Client networks that can print. CUPS also always answers localhost,
+        which is how Caddy reaches the web UI.
+      '';
     };
     subdomain = lib.mkOption {
       type = lib.types.str;

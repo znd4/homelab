@@ -24,6 +24,7 @@
 }:
 let
   cfg = config.homelab.reverseProxy;
+  inventory = import ../inventory.nix;
   inherit (config.homelab) domain;
 
   vhostBlock =
@@ -90,13 +91,11 @@ in
     };
     lanCidrs = lib.mkOption {
       type = lib.types.listOf lib.types.str;
-      default = [
-        "192.168.0.0/16"
-        "10.0.0.0/8"
-        "172.16.0.0/12"
-        "fd00::/8"
-      ];
-      description = "Source ranges that can reach `lanOnly` vhosts. Narrow this to the real LAN and VLANs.";
+      default = lib.mapAttrsToList (_: n: n.subnet) (
+        lib.filterAttrs (_: n: n.trusted) inventory.networks
+      );
+      defaultText = lib.literalExpression "subnets of the trusted networks in nix/inventory.nix";
+      description = "Source ranges that can reach `lanOnly` vhosts. IoT and guest networks are not in the default.";
     };
     vhosts = lib.mkOption {
       default = { };

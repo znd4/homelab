@@ -9,6 +9,7 @@
 let
   cfg = config.homelab;
   keys = import ../keys.nix;
+  inventory = import ../inventory.nix;
 in
 {
   options.homelab = {
@@ -33,10 +34,14 @@ in
     };
     lanAddress = lib.mkOption {
       type = lib.types.str;
-      example = "192.168.1.10";
+      default =
+        inventory.hosts.${config.networking.hostName}.ip
+          or (throw "nix/inventory.nix has no host ${config.networking.hostName}. Add it, or set homelab.lanAddress.");
+      defaultText = lib.literalExpression "(import nix/inventory.nix).hosts.<hostName>.ip";
+      example = "10.0.20.10";
       description = ''
-        The LAN IPv4 address of this host. Set it as a DHCP reservation in
-        UniFi. The homelab DNS zone points this host's names at this address.
+        The LAN IPv4 address of this host. It comes from nix/inventory.nix.
+        The UniFi DHCP reservation and the homelab DNS records use the same value.
       '';
     };
   };

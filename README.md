@@ -9,6 +9,7 @@ later, and network config as code after that.
 flake.nix                 hosts, deploy-rs nodes, installer ISO, dev shell
 .sops.yaml                sops recipients (admin key + host keys)
 nix/
+  inventory.nix           address plan: networks, hosts, VIPs (also read by infra/)
   keys.nix                admin SSH public keys
   installer.nix           bootstrap ISO for nixos-anywhere installs
   modules/                custom NixOS modules, all below `homelab.*`
@@ -18,7 +19,7 @@ nix/
     services/cups.nix     LAN print server
     services/dns.nix      CoreDNS for home.znd4.dev, keepalived VIP
   hosts/<host>/           disko layout, facter report, secrets, services
-infra/                    OpenTofu + Terragrunt (not started, see infra/README.md)
+infra/                    OpenTofu + Terragrunt stack for UniFi (see infra/README.md)
 docs/
   architecture.md         the plan and the conventions
   bootstrap.md            procedure to install a new NixOS host

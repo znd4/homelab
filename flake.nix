@@ -84,6 +84,9 @@
           ];
         };
 
+        # Address plan for NixOS and for Terragrunt (`nix eval --json .#inventory`).
+        inventory = import ./nix/inventory.nix;
+
         nixosConfigurations = nixpkgs.lib.genAttrs hostNames mkHost // {
           installer = nixpkgs.lib.nixosSystem {
             modules = [ ./nix/installer.nix ];

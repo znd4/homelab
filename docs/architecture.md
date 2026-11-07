@@ -21,12 +21,17 @@
    - [x] Modules: `base`, `remote-unlock`, `reverse-proxy`, `services/cups`, `services/dns`
    - [x] Installer ISO, disko layout, sops-nix, deploy-rs, CI builds
    - [ ] Do the bootstrap procedure on real hardware ([bootstrap.md](bootstrap.md))
-   - [ ] UniFi (by hand): DHCP reservation, Forward Domain for `home.znd4.dev`
+   - [ ] UniFi: servers network, DHCP reservation, Forward Domain for
+     `home.znd4.dev`. Do it by hand, or apply the Terragrunt stack (phase 3).
    - [ ] Declare the printer in `hardware.printers.ensurePrinters`
 2. **A second DNS host.** It removes the single point of failure for
    `home.znd4.dev` (decision 0006).
-3. **Network as code.**
-   - Set up the Tofu state backend, then import the current UniFi config.
+3. **Network as code** (decision 0008).
+   - [x] `nix/inventory.nix` as the single source of truth for addresses
+   - [x] Terragrunt stack `infra/live/home`: units `networks`, `clients`, `dns`
+   - [ ] Choose the state backend (decision 0005)
+   - [ ] Adopt the current UniFi config: first `plan` with no destroy, then `apply`
+   - [ ] Later: WLANs, firewall zones and policies
 4. **Talos cluster.**
    - Make the Talos machine configs from this repository (`talhelper` or the
      Talos Tofu provider).
@@ -40,6 +45,10 @@
   `homelab.services.<name>`. They are off by default, and a host enables them.
 - A service with a web UI adds `homelab.reverseProxy.vhosts.<sub>`. It does
   not configure Caddy directly. Caddy serves it at `<sub>.home.znd4.dev`.
+- Addresses come from `nix/inventory.nix` (decision 0008). Do not write an
+  address in a host file or in HCL.
+- Networks follow trust zones. Server classes get address ranges in the
+  servers network, not their own subnets.
 - DNS records come from the flake (decision 0006). Do not add records by hand
   in UniFi.
 - A host must not forget some values, such as an SSH key or a NIC driver.
@@ -58,6 +67,7 @@
 | [0005](decisions/0005-tofu-state-backend.md) | OpenTofu state backend (proposed) |
 | [0006](decisions/0006-dns.md) | DNS for the homelab zone |
 | [0007](decisions/0007-secrets.md) | Secrets with sops-nix |
+| [0008](decisions/0008-network-as-code.md) | Network as code |
 
 ## Open questions
 

@@ -8,8 +8,7 @@
   system.stateVersion = "26.05";
   nixpkgs.hostPlatform = "x86_64-linux";
 
-  # TODO(bootstrap): set the DHCP reservation in UniFi, then put it here.
-  homelab.lanAddress = "192.168.1.10";
+  # homelab.lanAddress comes from nix/inventory.nix.
 
   # Hardware detection. The bootstrap procedure creates facter.json
   # (docs/bootstrap.md). Until it exists, the explicit initrd NIC list below applies.
@@ -33,8 +32,7 @@
 
   homelab.services.dns = {
     enable = true;
-    # TODO(bootstrap): pick a LAN address outside the DHCP pool.
-    vip = "192.168.1.53";
+    # The VIP comes from nix/inventory.nix (vips.dns).
     # TODO(bootstrap): the LAN interface name from `ip -br link`.
     interface = "enp1s0";
     priority = 150;

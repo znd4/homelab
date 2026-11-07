@@ -119,7 +119,7 @@ The installer gets an address from DHCP. It announces itself as
    ```
 
 5. Find the MAC address of that interface. You need it for the DHCP
-   reservation in step 5.
+   reservation in section 5.
 6. On your workstation, copy the report into the repository:
 
    ```sh
@@ -131,23 +131,46 @@ remote-unlock initrd which NIC driver to load.
 
 ## 5. Set the network values
 
-1. In UniFi, make a DHCP reservation for the MAC address from step 4.5.
-2. Pick a second free LAN address outside the DHCP pool for the DNS VIP.
-3. Find all values that you must set:
+`nix/inventory.nix` holds all addresses. NixOS and the Terragrunt units read
+the same file. Decision 0008 explains the network plan.
+
+1. Find all values that you must set:
 
    ```sh
    grep -rn 'TODO(bootstrap)' nix .sops.yaml
    ```
 
-4. Set these values:
+2. In `nix/inventory.nix`, set `networks.default` to the real values of the
+   current UniFi default LAN.
+3. In `nix/inventory.nix`, set the VLAN IDs and subnets of the other networks.
+   They must not overlap a current network.
+4. In `nix/inventory.nix`, set `hosts.hl01.mac` to the MAC address from step 4.5.
+5. Check that `hosts.hl01.ip` is in the `nixos` range of the servers network.
+6. Check that `vips.dns` is in the `vips` range of the servers network.
+7. Set the values in the host files:
 
    | File | Option | Value |
    | --- | --- | --- |
-   | `nix/hosts/hl01/default.nix` | `homelab.lanAddress` | The DHCP reservation |
-   | `nix/hosts/hl01/default.nix` | `homelab.services.dns.vip` | The VIP from step 2 |
    | `nix/hosts/hl01/default.nix` | `homelab.services.dns.interface` | The interface from step 4.4 |
    | `nix/hosts/hl01/default.nix` | `homelab.reverseProxy.acme.challengeDomain` | The CNAME target from section 2 |
    | `nix/hosts/hl01/disko.nix` | `disko.devices.disk.main.device` | The by-id path from step 4.3 |
+
+8. Make the servers network and the DHCP reservation in UniFi. Use one of
+   these two methods:
+   - By hand: in UniFi, make the servers network with the VLAN ID, subnet and
+     DHCP range from `nix/inventory.nix`. Then make a DHCP reservation for
+     the MAC address of hl01, with the address from `hosts.hl01.ip`.
+   - With OpenTofu: do the procedure in `infra/README.md`. It makes the
+     networks and the reservation from `nix/inventory.nix`.
+
+9. Set the switch port of hl01 to the servers network (native VLAN).
+
+   If the port stays on the default LAN, hl01 does not get the address from its DHCP reservation.
+
+10. Turn on the UniFi mDNS proxy (multicast DNS) for the servers network and
+    for the client networks.
+
+    Without the mDNS proxy, clients in other networks do not find the printer.
 
 ## 6. Make the host keys and secrets
 
@@ -258,10 +281,15 @@ The connection closes when the passphrase is correct. The boot then continues.
 
 ## 9. Forward the homelab zone
 
+If you used OpenTofu in section 5, the `dns` unit makes the Forward Domain.
+Go to section 10.
+
+To make the Forward Domain by hand:
+
 1. In UniFi Network, open Settings > Policy Table and add a DNS policy.
 2. Set the type to Forward Domain.
 3. Set the domain to `home.znd4.dev`.
-4. Set the target to the DNS VIP.
+4. Set the target to `vips.dns` from `nix/inventory.nix`.
 
 I did not check the exact UniFi menu names. They can be different in your
 UniFi version.
