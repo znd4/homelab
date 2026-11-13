@@ -41,10 +41,15 @@ jobs:
           retention-days: 7
           compression-level: 0
 
-  # VM test: DNS records, VIP failover, Caddy -> CUPS. Needs KVM, which
-  # GitHub's Linux runners provide.
-  dns-vm-test:
+  # NixOS VM tests. They need KVM, which GitHub's Linux runners provide.
+  #   dns-vm: DNS records, VIP failover, Caddy -> CUPS.
+  #   remote-unlock-vm: LUKS root unlocked over SSH in the initrd.
+  vm-test:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        check: [dns-vm, remote-unlock-vm]
     steps:
       - uses: actions/checkout@v4
       - name: Enable KVM
@@ -55,4 +60,4 @@ jobs:
         with:
           determinate: true
       - uses: DeterminateSystems/flakehub-cache-action@main
-      - run: nix build --print-build-logs .#checks.x86_64-linux.dns-vm
+      - run: nix build --print-build-logs .#checks.x86_64-linux.${{ matrix.check }}

@@ -269,7 +269,11 @@ The initrd has no mDNS. Use the IP address of the host.
      Port 2222
      User root
      HostKeyAlias hl01-initrd
+     RequestTTY yes
    ```
+
+   The unlock prompt needs a terminal. Without one, the host prints
+   `use ssh -t` and closes the connection.
 
 2. Connect and type the passphrase:
 

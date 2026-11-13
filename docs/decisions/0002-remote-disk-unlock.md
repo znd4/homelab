@@ -16,6 +16,18 @@
   Authorized keys get a forced command,
   `systemd-tty-ask-password-agent --watch`, so a login can only answer the
   passphrase prompt and gets no shell.
+- **The forced command needs a terminal** (`ssh -t`). Without one, the agent
+  reads EOF and sends an empty passphrase for each new prompt. It also keeps
+  running after the client disconnects, so it blocks every later attempt. The
+  VM test found this. On a terminal, a disconnect sends SIGHUP and the agent
+  stops.
+- **Unlimited tries** (`tries=0` on every LUKS device). Each closed session
+  counts as one attempt. With the systemd default of 3 tries, failed attempts
+  put the host in emergency mode, which works only on the local console.
+  Only a holder of an admin SSH key can make an attempt.
+- **Test:** `nix build .#checks.x86_64-linux.remote-unlock-vm` boots a VM from
+  a LUKS disk through systemd-boot and unlocks it over SSH. It does not test
+  the `en*` interface match or the facter NIC drivers.
 - **NIC drivers** come from the host's nixos-facter report (upstream
   `hardware.facter`). It adds network modules to the initrd whenever
   `boot.initrd.network.enable` is true.

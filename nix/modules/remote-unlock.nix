@@ -12,11 +12,23 @@
 # impersonate the unlock prompt. So:
 #   - the key is dedicated to the initrd and is never the real host key;
 #   - it listens on its own port, so known_hosts never confuses the two keys;
-#   - the forced command only answers password prompts; no shell is exposed.
+#   - the forced command only answers password prompts; no shell is exposed;
+#   - the forced command needs a terminal (`ssh -t`), see forcedCommand.
+#
+# Every LUKS device gets `tries=0` (ask again until the passphrase is
+# correct). Each SSH session that closes counts as one attempt, also an empty
+# one. With the systemd default (3 tries), dropped sessions put the machine in
+# emergency mode, which is on the local console only. Only a holder of an
+# admin SSH key can make an attempt, so unlimited tries do not help an attacker.
 # See https://wiki.nixos.org/wiki/Remote_disk_unlocking
 { config, lib, ... }:
 let
   cfg = config.homelab.remoteUnlock;
+  # The agent runs only on a terminal. Without one, the agent reads EOF, sends
+  # an empty passphrase, and repeats this for each new prompt. It also does not
+  # stop when the client disconnects, so it blocks all later attempts. On a
+  # terminal, a disconnect sends SIGHUP and the agent stops.
+  forcedCommand = "if test -t 0; then exec systemd-tty-ask-password-agent --watch; else echo use ssh -t >&2; exit 1; fi";
 in
 {
   options.homelab.remoteUnlock = {
@@ -60,6 +72,15 @@ in
     };
   };
 
+  # Extend the submodule of every LUKS device (also devices that disko adds).
+  options.boot.initrd.luks.devices = lib.mkOption {
+    type = lib.types.attrsOf (
+      lib.types.submodule {
+        config.crypttabExtraOpts = lib.mkIf cfg.enable [ "tries=0" ];
+      }
+    );
+  };
+
   config = lib.mkIf cfg.enable {
     assertions = [
       {
@@ -87,9 +108,7 @@ in
         inherit (cfg) port;
         hostKeys = [ cfg.hostKey ];
         authorizedKeys = map (
-          k:
-          ''command="systemd-tty-ask-password-agent --watch",no-port-forwarding,no-agent-forwarding,no-X11-forwarding ''
-          + k
+          k: ''command="${forcedCommand}",no-port-forwarding,no-agent-forwarding,no-X11-forwarding '' + k
         ) config.homelab.authorizedKeys;
       };
     };

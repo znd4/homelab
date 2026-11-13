@@ -110,6 +110,9 @@
           dns-vm = nixpkgs.legacyPackages.x86_64-linux.testers.runNixOSTest (
             import ./nix/tests/dns.nix { inherit self; }
           );
+          remote-unlock-vm = nixpkgs.legacyPackages.x86_64-linux.testers.runNixOSTest (
+            import ./nix/tests/remote-unlock.nix { inherit self; }
+          );
         };
 
         # Built-in image builder (NixOS 25.05+). It replaces nixos-generators.
