@@ -1,0 +1,18 @@
+# sops recipients. Each secrets file is encrypted to:
+#   - the admin age key. It lives in 1Password and decrypts on the workstation.
+#   - the host age key, which comes from the host SSH key (ssh-to-age).
+# docs/bootstrap.md shows how to create both keys.
+keys:
+  # Admin age key. The private key is the 1Password item "homelab age key"
+  # (vault Homelab). Runbook: docs/bootstrap.md#prepare-the-admin-keys
+  - &admin age1wr6pw5au4msz0g5u56yqwt5s2zgzk7p03kyg3m4ukw9pf6gzu46sm9adlx
+  # TODO(bootstrap): the hl01 age public key. The host SSH key lives in 1Password;
+  #   `op read "op://Homelab/hl01 host key/public key" | ssh-to-age` prints it.
+  #   Runbook: docs/bootstrap.md#make-the-host-keys-and-secrets
+  - &hl01 age1replace-with-hl01-public-key
+creation_rules:
+  - path_regex: nix/hosts/hl01/secrets\.yaml$
+    key_groups:
+      - age:
+          - *admin
+          - *hl01

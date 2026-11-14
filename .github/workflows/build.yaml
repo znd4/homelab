@@ -1,43 +1,63 @@
-name: Build NixOS ISO
+name: build
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
-  # Allows you to run this workflow manually from the Actions tab
+    branches: [main]
   workflow_dispatch:
 
 jobs:
-  build:
+  hosts:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        host: [hl01]
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
+      - uses: actions/checkout@v4
       - uses: DeterminateSystems/nix-installer-action@main
         with:
           determinate: true
       - uses: DeterminateSystems/flakehub-cache-action@main
+      - name: Build system closure
+        run: nix build --print-build-logs .#nixosConfigurations.${{ matrix.host }}.config.system.build.toplevel
 
-      - name: Build NixOS ISO
-        run: |
-          set -x
-          # Build the ISO
-          nix build .#nixosConfigurations.corednsMachine.config.formats.install-iso
-
-          # Create a directory to store the ISO for artifact upload
-          mkdir -p iso-output
-
-          # Copy the ISO to the output directory with a more descriptive name
-          cp -L result/*.iso iso-output/coredns-nixos.iso
-
-      - name: Upload ISO as artifact
-        uses: actions/upload-artifact@v4
+  installer-iso:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@main
         with:
-          name: coredns-nixos-iso
-          path: iso-output/coredns-nixos.iso
-          # Optional: How long to retain the artifact (default is 90 days)
+          determinate: true
+      - uses: DeterminateSystems/flakehub-cache-action@main
+      - name: Build installer ISO
+        run: |
+          nix build --print-build-logs .#installer-iso
+          mkdir -p out && cp -L result/iso/*.iso out/homelab-installer.iso
+      - uses: actions/upload-artifact@v4
+        with:
+          name: homelab-installer-iso
+          path: out/homelab-installer.iso
           retention-days: 7
-          # Optional: Compression level (0-9)
-          compression-level: 9
+          compression-level: 0
+
+  # NixOS VM tests. They need KVM, which GitHub's Linux runners provide.
+  #   dns-vm: DNS records, VIP failover, Caddy -> CUPS.
+  #   remote-unlock-vm: LUKS root unlocked over SSH in the initrd.
+  vm-test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        check: [dns-vm, remote-unlock-vm]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
+      - uses: DeterminateSystems/nix-installer-action@main
+        with:
+          determinate: true
+      - uses: DeterminateSystems/flakehub-cache-action@main
+      - run: nix build --print-build-logs .#checks.x86_64-linux.${{ matrix.check }}
