@@ -1,12 +1,8 @@
 # Bootstrap a NixOS host
 
-This procedure installs `hl01` on bare metal. For a new host, do these steps first:
-
-1. Copy `nix/hosts/hl01` to `nix/hosts/<name>`.
-2. Change `networking.hostName` in the new directory.
-3. Add the name to `hostNames` in `flake.nix`.
-4. Add the name to the CI matrix in `.github/workflows/build.yaml`.
-5. Add a creation rule for the host to `.sops.yaml`.
+This procedure installs the first host, `hl01`, on bare metal. Sections 1
+and 2 occur one time for the repository. Sections 3 to 10 install one host.
+Section 11 deploys later changes. To add a different host, see section 12.
 
 Run all commands from the repository root, inside `nix develop`. The dev shell
 supplies `nixos-anywhere`, `deploy`, `sops`, `age`, `ssh-to-age` and `dig`.
@@ -394,3 +390,21 @@ cannot reach the host over SSH after the activation, deploy-rs restores the prev
 
 When there is more than one DNS host, deploy one host at a time. Decision 0006
 gives the order.
+
+## 12. Add another host
+
+Do these steps first. Replace `<name>` with
+the new host name.
+
+1. Copy `nix/hosts/hl01` to `nix/hosts/<name>`.
+2. Change `networking.hostName` in the new directory.
+3. Add the host to `hosts` in `nix/inventory.nix`.
+4. Add the name to `hostNames` in `flake.nix`.
+5. Add the name to the CI matrix in `.github/workflows/build.yaml`.
+6. Add a creation rule for the host to `.sops.yaml`.
+7. Do sections 3 to 8 and section 10. Use `<name>` in place of `hl01` in
+   each command. Section 9 occurs one time only. If the installer USB from
+   section 3 still has the current admin keys, use it again.
+
+If the new host also runs DNS, give it a lower `priority` than `hl01`.
+Decision 0006 gives the details.
