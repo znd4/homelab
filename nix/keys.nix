@@ -4,12 +4,11 @@
 # remote disk unlocking (as root). Keys live in 1Password; copy the *public*
 # halves here.
 #
-# TODO(bootstrap): add at least one key before building an installer or deploying a host.
-#   Runbook: docs/bootstrap.md#prepare-the-admin-keys (`op read "op://Homelab/homelab admin/public key"`).
 # The build fails on purpose while this list is empty (see modules/base.nix);
 # otherwise you would be locked out of the machine.
 {
   admins = [
-    # "ssh-ed25519 AAAA... znd4@1password"
+    # 1Password: "homelab admin" (vault Homelab). docs/bootstrap.md#prepare-the-admin-keys
+    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILp/ebsWDFc35LNMutnREANZw4YCCDdBbvMhaWoMsp6k"
   ];
 }

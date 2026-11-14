@@ -3,9 +3,9 @@
 #   - the host age key, which comes from the host SSH key (ssh-to-age).
 # docs/bootstrap.md shows how to create both keys.
 keys:
-  # TODO(bootstrap): the admin age public key (starts with age1).
-  #   Runbook: docs/bootstrap.md#prepare-the-admin-keys (the age key steps).
-  - &admin age1replace-with-admin-public-key
+  # Admin age key. The private key is the 1Password item "homelab age key"
+  # (vault Homelab). Runbook: docs/bootstrap.md#prepare-the-admin-keys
+  - &admin age1wr6pw5au4msz0g5u56yqwt5s2zgzk7p03kyg3m4ukw9pf6gzu46sm9adlx
   # TODO(bootstrap): the hl01 age public key. The host SSH key lives in 1Password;
   #   `op read "op://Homelab/hl01 host key/public key" | ssh-to-age` prints it.
   #   Runbook: docs/bootstrap.md#make-the-host-keys-and-secrets
