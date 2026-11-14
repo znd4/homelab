@@ -14,33 +14,73 @@ supplies `nixos-anywhere`, `deploy`, `sops`, `age`, `ssh-to-age` and `dig`.
 
 ## Prepare the admin keys
 
-Do this part one time for the repository.
+Do this part one time for the repository. All homelab items go in the
+1Password vault `Homelab`. A separate vault lets you give a tool access to the
+homelab items only.
 
-1. Get your SSH public key. With the 1Password SSH agent, run `ssh-add -L`.
-2. Add the public key to `admins` in `nix/keys.nix`.
+1. Make the vault:
+
+   ```sh
+   op vault create Homelab
+   ```
+
+2. Make a dedicated admin SSH key. It gives root access to all homelab hosts
+   and to the remote unlock prompt. Do not use it for other services.
+
+   ```sh
+   op item create --category "SSH Key" --ssh-generate-key ed25519 \
+     --vault Homelab --title "homelab admin" >/dev/null
+   ```
+
+3. Allow the 1Password SSH agent to use keys from the `Homelab` vault. In the
+   1Password settings, go to Developer > SSH Agent. Alternatively, add the
+   vault to `~/.config/1Password/ssh/agent.toml`.
+4. Add the public key to `admins` in `nix/keys.nix`. This command prints it:
+
+   ```sh
+   op read "op://Homelab/homelab admin/public key"
+   ```
+
+   Do not use `ssh-add -L` for this. On this Mac, `SSH_AUTH_SOCK` is the macOS
+   agent, which has no keys. Only `ssh` uses the 1Password agent, through
+   `IdentityAgent` in `~/.ssh/config`.
 
    The build fails until `admins` has at least one key. This check prevents a
    host that you cannot log in to.
 
-3. Make the admin age key:
+5. Tell `ssh` to offer only this key to homelab hosts. The 1Password agent has
+   many keys. By default, `sshd` closes the connection after 6 failed keys.
+
+   ```sh
+   op read "op://Homelab/homelab admin/public key" > ~/.ssh/homelab_admin.pub
+   ```
+
+   Then add this entry to `~/.ssh/config`, or to the Nix module that makes
+   that file:
+
+   ```
+   Host hl01 hl01-unlock nixos-installer.local *.home.znd4.dev
+     IdentityFile ~/.ssh/homelab_admin.pub
+     IdentitiesOnly yes
+   ```
+
+6. Make the admin age key:
 
    ```sh
    age-keygen -o admin-age.txt
    ```
 
-4. Save the full contents of `admin-age.txt` in 1Password, for example as the
-   item "homelab age key".
-5. Copy the public key (the line that starts with `age1`) to the `&admin` entry
+7. Save the full contents of `admin-age.txt` in 1Password as a secure note
+   with the name "homelab age key", in the `Homelab` vault.
+8. Copy the public key (the line that starts with `age1`) to the `&admin` entry
    in `.sops.yaml`.
-6. Delete `admin-age.txt`.
+9. Delete `admin-age.txt`.
 
 To decrypt secrets later, put the key in the environment from 1Password:
 
 ```sh
-export SOPS_AGE_KEY="$(op read 'op://Private/homelab age key/notesPlain')"
+export SOPS_AGE_KEY="$(op read 'op://Homelab/homelab age key/notesPlain')"
 ```
-
-Change the `op://` path to the 1Password item that you made above.
 
 ## Prepare the ACME challenge zone
 
@@ -218,7 +258,7 @@ install, so that you can encrypt the secrets first.
 
 Both host keys go in 1Password. A reinstall then uses the same keys. The
 secrets still decrypt, and `known_hosts` stays correct. The commands use the
-vault `Homelab`. Change the vault name if you use a different vault.
+vault `Homelab` from [Prepare the admin keys](#prepare-the-admin-keys).
 
 1. Make a temporary directory. `nixos-anywhere` copies everything below
    `$tmp/files` to the root of the new system.
