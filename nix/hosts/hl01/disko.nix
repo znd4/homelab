@@ -9,11 +9,11 @@
     # TODO(bootstrap): the /dev/disk/by-id/... path of the install disk.
     #   It is not arbitrary: the kernel builds it from the disk model and serial number,
     #   for example nvme-Samsung_SSD_980_1TB_S64DNX0R123456. You read it on the machine,
-    #   so boot the installer first (section 3), then copy it here (section 4, step 3).
+    #   so boot the installer first, then copy it here.
     #   Why not /dev/nvme0n1: that name depends on probe order. With a second disk it can
     #   point at the wrong one, and disko erases the disk that it points at.
     #   With exactly one disk in the machine, /dev/nvme0n1 also works.
-    #   Runbook: docs/bootstrap.md, section 4 "Get the hardware facts".
+    #   Runbook: docs/bootstrap.md#get-the-hardware-facts (the install disk step).
     device = "/dev/nvme0n1";
     content = {
       type = "gpt";

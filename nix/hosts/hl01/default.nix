@@ -28,14 +28,14 @@
   sops.defaultSopsFile = ./secrets.yaml;
 
   # The target of the _acme-challenge.home.znd4.dev CNAME. acme.znd4.dev is a
-  # deSEC zone that DNSimple delegates to (docs/bootstrap.md, section 2).
+  # deSEC zone that DNSimple delegates to (docs/bootstrap.md#prepare-the-acme-challenge-zone).
   homelab.reverseProxy.acme.challengeDomain = "_acme-challenge.acme.znd4.dev";
 
   homelab.services.dns = {
     enable = true;
     # The VIP comes from nix/inventory.nix (vips.dns).
     # TODO(bootstrap): the LAN interface name from `ip -br link` on the installer.
-    #   Runbook: docs/bootstrap.md, section 4 "Get the hardware facts", step 4.
+    #   Runbook: docs/bootstrap.md#get-the-hardware-facts (the interface step).
     interface = "enp1s0";
     priority = 150;
   };

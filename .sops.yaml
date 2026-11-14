@@ -4,11 +4,11 @@
 # docs/bootstrap.md shows how to create both keys.
 keys:
   # TODO(bootstrap): the admin age public key (starts with age1).
-  #   Runbook: docs/bootstrap.md, section 1 "Prepare the admin keys", steps 3-5.
+  #   Runbook: docs/bootstrap.md#prepare-the-admin-keys (the age key steps).
   - &admin age1replace-with-admin-public-key
   # TODO(bootstrap): the hl01 age public key. The host SSH key lives in 1Password;
   #   `op read "op://Homelab/hl01 host key/public key" | ssh-to-age` prints it.
-  #   Runbook: docs/bootstrap.md, section 6 "Make the host keys and secrets", steps 2-5.
+  #   Runbook: docs/bootstrap.md#make-the-host-keys-and-secrets
   - &hl01 age1replace-with-hl01-public-key
 creation_rules:
   - path_regex: nix/hosts/hl01/secrets\.yaml$

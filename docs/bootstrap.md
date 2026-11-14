@@ -1,13 +1,18 @@
 # Bootstrap a NixOS host
 
-This procedure installs the first host, `hl01`, on bare metal. Sections 1
-and 2 occur one time for the repository. Sections 3 to 10 install one host.
-Section 11 deploys later changes. To add a different host, see section 12.
+This procedure installs the first host, `hl01`, on bare metal.
+
+- Do [Prepare the admin keys](#prepare-the-admin-keys) and [Prepare the ACME challenge zone](#prepare-the-acme-challenge-zone)
+  one time for the repository.
+- The sections from [Make the installer USB](#make-the-installer-usb) to [Check the result](#check-the-result)
+  install one host.
+- [Deploy changes](#deploy-changes) applies later changes.
+- [Add another host](#add-another-host) adds a different host.
 
 Run all commands from the repository root, inside `nix develop`. The dev shell
 supplies `nixos-anywhere`, `deploy`, `sops`, `age`, `ssh-to-age` and `dig`.
 
-## 1. Prepare the admin keys
+## Prepare the admin keys
 
 Do this part one time for the repository.
 
@@ -35,9 +40,9 @@ To decrypt secrets later, put the key in the environment from 1Password:
 export SOPS_AGE_KEY="$(op read 'op://Private/homelab age key/notesPlain')"
 ```
 
-Change the `op://` path to the item that you made in step 4.
+Change the `op://` path to the 1Password item that you made above.
 
-## 2. Prepare the ACME challenge zone
+## Prepare the ACME challenge zone
 
 Caddy gets the `*.home.znd4.dev` certificate with a DNS-01 challenge. Caddy
 writes the challenge record in the deSEC zone `acme.znd4.dev`, not in
@@ -97,9 +102,9 @@ writes the challenge record in the deSEC zone `acme.znd4.dev`, not in
 9. Delete the `homelab-login` token in the deSEC web interface.
 
 The Caddy token can read all records in the deSEC account. It cannot read
-or change `znd4.dev`. Section 6 puts the Caddy token in the host secrets.
+or change `znd4.dev`. [Make the host keys and secrets](#make-the-host-keys-and-secrets) puts the Caddy token in the host secrets.
 
-## 3. Make the installer USB
+## Make the installer USB
 
 1. Build the installer ISO. This step needs an x86_64-linux builder.
 
@@ -126,7 +131,7 @@ or change `znd4.dev`. Section 6 puts the Caddy token in the host secrets.
 The installer gets an address from DHCP. It announces itself as
 `nixos-installer.local`. It accepts the keys in `nix/keys.nix` for `root`.
 
-## 4. Get the hardware facts
+## Get the hardware facts
 
 1. Log in to the installer:
 
@@ -153,7 +158,7 @@ The installer gets an address from DHCP. It announces itself as
    ```
 
 5. Find the MAC address of that interface. You need it for the DHCP
-   reservation in section 5.
+   reservation in [Set the network values](#set-the-network-values).
 6. On your workstation, copy the report into the repository:
 
    ```sh
@@ -163,7 +168,7 @@ The installer gets an address from DHCP. It announces itself as
 The facter report replaces `hardware-configuration.nix`. It also tells the
 remote-unlock initrd which NIC driver to load.
 
-## 5. Set the network values
+## Set the network values
 
 `nix/inventory.nix` holds all addresses. NixOS and the Terragrunt units read
 the same file. Decision 0008 explains the network plan.
@@ -171,23 +176,23 @@ the same file. Decision 0008 explains the network plan.
 1. Find all values that you must set:
 
    ```sh
-   grep -rn 'TODO(bootstrap)' nix .sops.yaml
+   rg -n -F 'TODO(bootstrap)' nix .sops.yaml
    ```
 
 2. In `nix/inventory.nix`, set `networks.default` to the real values of the
    current UniFi default LAN.
 3. In `nix/inventory.nix`, set the VLAN IDs and subnets of the other networks.
    They must not overlap a current network.
-4. In `nix/inventory.nix`, set `hosts.hl01.mac` to the MAC address from step 4.5.
+4. In `nix/inventory.nix`, set `hosts.hl01.mac` to the MAC address from [Get the hardware facts](#get-the-hardware-facts).
 5. Check that `hosts.hl01.ip` is in the `nixos` range of the servers network.
 6. Check that `vips.dns` is in the `vips` range of the servers network.
 7. Set the values in the host files:
 
    | File | Option | Value |
    | --- | --- | --- |
-   | `nix/hosts/hl01/default.nix` | `homelab.services.dns.interface` | The interface from step 4.4 |
-   | `nix/hosts/hl01/default.nix` | `homelab.reverseProxy.acme.challengeDomain` | The CNAME target from section 2 |
-   | `nix/hosts/hl01/disko.nix` | `disko.devices.disk.main.device` | The by-id path from step 4.3 |
+   | `nix/hosts/hl01/default.nix` | `homelab.services.dns.interface` | The interface from [Get the hardware facts](#get-the-hardware-facts) |
+   | `nix/hosts/hl01/default.nix` | `homelab.reverseProxy.acme.challengeDomain` | The CNAME target from [Prepare the ACME challenge zone](#prepare-the-acme-challenge-zone) |
+   | `nix/hosts/hl01/disko.nix` | `disko.devices.disk.main.device` | The by-id path from [Get the hardware facts](#get-the-hardware-facts) |
 
 8. Make the servers network and the DHCP reservation in UniFi. Use one of
    these two methods:
@@ -206,7 +211,7 @@ the same file. Decision 0008 explains the network plan.
 
     Without the mDNS proxy, clients in other networks do not find the printer.
 
-## 6. Make the host keys and secrets
+## Make the host keys and secrets
 
 The host SSH key decrypts the host's secrets. You make the key before the
 install, so that you can encrypt the secrets first.
@@ -278,7 +283,7 @@ vault `Homelab`. Change the vault name if you use a different vault.
    git add nix/hosts/hl01 .sops.yaml
    ```
 
-## 7. Install
+## Install
 
 WARNING: `nixos-anywhere` deletes all data on the disk in `disko.nix`. Make sure that the
 device path is correct before you continue.
@@ -305,7 +310,7 @@ the passphrase from that file and formats the disk. Then `nixos-anywhere`
 installs the system and reboots the machine. With `--build-on remote`, the
 target builds the system, so a Mac workstation needs no Linux builder.
 
-## 8. Unlock the disk
+## Unlock the disk
 
 The initrd has no mDNS. Use the IP address of the host.
 
@@ -332,10 +337,10 @@ The initrd has no mDNS. Use the IP address of the host.
 
 The connection closes when the passphrase is correct. The boot then continues.
 
-## 9. Forward the homelab zone
+## Forward the homelab zone
 
-If you used OpenTofu in section 5, the `dns` unit makes the Forward Domain.
-Go to section 10.
+If you used OpenTofu in [Set the network values](#set-the-network-values), the `dns` unit makes
+the Forward Domain. Go to [Check the result](#check-the-result).
 
 To make the Forward Domain by hand:
 
@@ -347,7 +352,7 @@ To make the Forward Domain by hand:
 I did not check the exact UniFi menu names. They can be different in your
 UniFi version.
 
-## 10. Check the result
+## Check the result
 
 1. Check the DNS service through the VIP:
 
@@ -376,7 +381,7 @@ UniFi version.
 4. Print a test page from a laptop. The printer shows up through mDNS. It does
    not need the homelab DNS.
 
-## 11. Deploy changes
+## Deploy changes
 
 1. Commit the change.
 2. Deploy it:
@@ -391,7 +396,7 @@ cannot reach the host over SSH after the activation, deploy-rs restores the prev
 When there is more than one DNS host, deploy one host at a time. Decision 0006
 gives the order.
 
-## 12. Add another host
+## Add another host
 
 Do these steps first. Replace `<name>` with
 the new host name.
@@ -402,9 +407,10 @@ the new host name.
 4. Add the name to `hostNames` in `flake.nix`.
 5. Add the name to the CI matrix in `.github/workflows/build.yaml`.
 6. Add a creation rule for the host to `.sops.yaml`.
-7. Do sections 3 to 8 and section 10. Use `<name>` in place of `hl01` in
-   each command. Section 9 occurs one time only. If the installer USB from
-   section 3 still has the current admin keys, use it again.
+7. Do the sections from [Make the installer USB](#make-the-installer-usb) to
+   [Check the result](#check-the-result). Use `<name>` in place of `hl01` in each command.
+   Skip [Forward the homelab zone](#forward-the-homelab-zone), which occurs one time only. If the
+   installer USB still has the current admin keys, use it again.
 
 If the new host also runs DNS, give it a lower `priority` than `hl01`.
 Decision 0006 gives the details.
