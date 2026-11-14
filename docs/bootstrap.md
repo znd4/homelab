@@ -215,6 +215,10 @@ the same file. Decision 0008 explains the network plan.
 The host SSH key decrypts the host's secrets. You make the key before the
 install, so that you can encrypt the secrets first.
 
+Both host keys go in 1Password. A reinstall then uses the same keys. The
+secrets still decrypt, and `known_hosts` stays correct. The commands use the
+vault `Homelab`. Change the vault name if you use a different vault.
+
 1. Make a temporary directory. `nixos-anywhere` copies everything below
    `$tmp/files` to the root of the new system.
 
@@ -224,25 +228,36 @@ install, so that you can encrypt the secrets first.
    install -d -m700 "$tmp/files/etc/secrets/initrd"
    ```
 
-2. Make the host SSH key:
+2. Make the host SSH key in 1Password, and write it to `$tmp/files`:
 
    ```sh
-   ssh-keygen -t ed25519 -N "" -C "hl01" -f "$tmp/files/etc/ssh/ssh_host_ed25519_key"
+   op item create --category "SSH Key" --ssh-generate-key ed25519 \
+     --vault Homelab --title "hl01 host key" >/dev/null
+   k="$tmp/files/etc/ssh/ssh_host_ed25519_key"
+   op read "op://Homelab/hl01 host key/private key?ssh-format=openssh" > "$k"
+   op read "op://Homelab/hl01 host key/public key" > "$k.pub"
+   chmod 600 "$k"
    ```
 
-3. Make the initrd SSH key. This key is different from the host key.
+3. Make the initrd SSH key in the same way. This key is different from the
+   host key.
 
    The boot partition holds the initrd key without encryption.
    Never use the host key for the initrd.
 
    ```sh
-   ssh-keygen -t ed25519 -N "" -C "hl01-initrd" -f "$tmp/files/etc/secrets/initrd/ssh_host_ed25519_key"
+   op item create --category "SSH Key" --ssh-generate-key ed25519 \
+     --vault Homelab --title "hl01 initrd key" >/dev/null
+   k="$tmp/files/etc/secrets/initrd/ssh_host_ed25519_key"
+   op read "op://Homelab/hl01 initrd key/private key?ssh-format=openssh" > "$k"
+   op read "op://Homelab/hl01 initrd key/public key" > "$k.pub"
+   chmod 600 "$k"
    ```
 
 4. Get the age public key of the host:
 
    ```sh
-   ssh-to-age < "$tmp/files/etc/ssh/ssh_host_ed25519_key.pub"
+   op read "op://Homelab/hl01 host key/public key" | ssh-to-age
    ```
 
 5. Copy the output to the `&hl01` entry in `.sops.yaml`.

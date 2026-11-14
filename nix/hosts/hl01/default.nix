@@ -34,7 +34,8 @@
   homelab.services.dns = {
     enable = true;
     # The VIP comes from nix/inventory.nix (vips.dns).
-    # TODO(bootstrap): the LAN interface name from `ip -br link`.
+    # TODO(bootstrap): the LAN interface name from `ip -br link` on the installer.
+    #   Runbook: docs/bootstrap.md, section 4 "Get the hardware facts", step 4.
     interface = "enp1s0";
     priority = 150;
   };

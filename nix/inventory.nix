@@ -19,6 +19,7 @@
     # The current default LAN, made by hand in UniFi. Terragrunt adopts it by
     # name and does not make it again.
     # TODO(bootstrap): set the real name, subnet and DHCP range of the default LAN.
+    #   Runbook: docs/bootstrap.md, section 5 "Set the network values".
     default = {
       name = "Default";
       adopt = true;
@@ -34,6 +35,7 @@
     };
 
     # TODO(bootstrap): pick VLAN IDs and subnets that do not overlap the current networks.
+    #   Runbook: docs/bootstrap.md, section 5 "Set the network values".
     management = {
       name = "Management";
       adopt = false;
@@ -120,6 +122,7 @@
       role = "nixos";
       network = "servers";
       # TODO(bootstrap): the MAC address of the LAN interface (`ip -br link` on the installer).
+      #   Runbook: docs/bootstrap.md, section 4 "Get the hardware facts", step 5.
       mac = null;
       ip = "10.0.20.10";
     };

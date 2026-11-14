@@ -5,6 +5,7 @@
 # halves here.
 #
 # TODO(bootstrap): add at least one key before building an installer or deploying a host.
+#   Runbook: docs/bootstrap.md, section 1 "Prepare the admin keys", steps 1-2.
 # The build fails on purpose while this list is empty (see modules/base.nix);
 # otherwise you would be locked out of the machine.
 {
