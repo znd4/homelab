@@ -27,8 +27,9 @@
   # Secrets for this host. The bootstrap procedure creates this file.
   sops.defaultSopsFile = ./secrets.yaml;
 
-  # TODO(bootstrap): set to the target of the _acme-challenge CNAME.
-  homelab.reverseProxy.acme.challengeDomain = "_acme-challenge.znd4-homelab.dedyn.io";
+  # The target of the _acme-challenge.home.znd4.dev CNAME. acme.znd4.dev is a
+  # deSEC zone that DNSimple delegates to (docs/bootstrap.md, section 2).
+  homelab.reverseProxy.acme.challengeDomain = "_acme-challenge.acme.znd4.dev";
 
   homelab.services.dns = {
     enable = true;

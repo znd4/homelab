@@ -10,7 +10,7 @@
 #
 # TLS modes:
 #   - "acme" (default): Let's Encrypt with a DNS-01 challenge. Caddy writes the
-#     challenge TXT record in a separate deSEC zone. A permanent CNAME in the
+#     challenge TXT record in a delegated deSEC zone. A permanent CNAME in the
 #     main zone points `_acme-challenge.<domain>` at that zone. The token on
 #     this host thus cannot change the main zone (MX, SPF, DKIM).
 #     See docs/decisions/0003-names-and-tls.md.
@@ -77,7 +77,7 @@ in
       };
       challengeDomain = lib.mkOption {
         type = lib.types.str;
-        example = "_acme-challenge.znd4-acme.dedyn.io";
+        example = "_acme-challenge.acme.znd4.dev";
         description = ''
           The target of the CNAME `_acme-challenge.<domain>`. Caddy writes the
           DNS-01 TXT record at this name in deSEC.

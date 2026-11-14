@@ -44,26 +44,64 @@ Change the `op://` path to the item that you made in step 4.
 ## 2. Prepare the ACME challenge zone
 
 Caddy gets the `*.home.znd4.dev` certificate with a DNS-01 challenge. Caddy
-writes the challenge record in a deSEC zone, not in `znd4.dev`. Decision 0003
-gives the reason.
+writes the challenge record in the deSEC zone `acme.znd4.dev`, not in
+`znd4.dev`. Decision 0003 gives the reason.
 
 1. Make an account at <https://desec.io>.
-2. Make a dedyn.io name, for example `znd4-homelab.dedyn.io`.
-3. Make an API token.
-4. Limit the token to the dedyn.io name from step 2, if deSEC lets you.
+2. In deSEC, add the domain `acme.znd4.dev`.
 
-   I did not check how fine-grained deSEC token policies are. Read the deSEC
-   token policy documentation before you rely on a limit.
+   I did not check that deSEC accepts a subdomain whose parent zone is at
+   another provider. If deSEC refuses it, stop and read decision 0003.
 
-5. Save the token in 1Password.
-6. In DNSimple, add this record to the `znd4.dev` zone:
+3. Add the records in the `znd4.dev` zone at DNSimple. The Pulumi program in
+   `znd4/cloud` (`dnsimple/main.go`) manages them.
 
    | Name | Type | Content |
    | --- | --- | --- |
-   | `_acme-challenge.home` | CNAME | `_acme-challenge.znd4-homelab.dedyn.io` |
+   | `acme` | NS | `ns1.desec.io` |
+   | `acme` | NS | `ns2.desec.org` |
+   | `_acme-challenge.home` | CNAME | `_acme-challenge.acme.znd4.dev` |
 
-7. Set `homelab.reverseProxy.acme.challengeDomain` in
-   `nix/hosts/hl01/default.nix` to the CNAME target from step 6.
+4. Make sure that the delegation works:
+
+   ```sh
+   dig +short NS acme.znd4.dev
+   ```
+
+   The output must show the two deSEC name servers.
+
+5. In the deSEC web interface, make a token with the name `homelab-login`.
+   Give it the "manage tokens" permission. Set `LOGIN` to this token.
+6. Make the token for Caddy. Set `TID` to the `id` in the output. Save the
+   `token` value in 1Password. deSEC shows the value one time only.
+
+   ```sh
+   curl -sS https://desec.io/api/v1/auth/tokens/ \
+     -H "Authorization: Token $LOGIN" -H "Content-Type: application/json" \
+     -d '{"name": "hl01-acme"}'
+   ```
+
+7. Take away all write permissions from the Caddy token. deSEC requires this
+   default policy before a specific policy.
+
+   ```sh
+   curl -sS https://desec.io/api/v1/auth/tokens/$TID/policies/rrsets/ \
+     -H "Authorization: Token $LOGIN" -H "Content-Type: application/json" \
+     -d '{"domain": null, "subname": null, "type": null}'
+   ```
+
+8. Let the Caddy token write only the challenge TXT record:
+
+   ```sh
+   curl -sS https://desec.io/api/v1/auth/tokens/$TID/policies/rrsets/ \
+     -H "Authorization: Token $LOGIN" -H "Content-Type: application/json" \
+     -d '{"domain": "acme.znd4.dev", "subname": "_acme-challenge", "type": "TXT", "perm_write": true}'
+   ```
+
+9. Delete the `homelab-login` token in the deSEC web interface.
+
+The Caddy token can read all records in the deSEC account. It cannot read
+or change `znd4.dev`. Section 6 puts the Caddy token in the host secrets.
 
 ## 3. Make the installer USB
 
